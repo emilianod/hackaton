@@ -69,9 +69,7 @@ def cargar_base_de_datos(ruta_db, ruta_imagenes):
         logging.info(f"Directorio '{db_dir}' creado.")
 
     if not os.path.exists(ruta_db):
-        logging.warning(f"Advertencia: El archivo de base de datos '{ruta_db}' no existe. Creando uno vacío.")
-        with open(ruta_db, 'w', encoding='utf-8') as f:
-            json.dump([], f)
+        logging.warning(f"Advertencia: El archivo de base de datos '{ruta_db}' no existe. Se tratará como una base de datos vacía.")
         return _codificaciones_conocidas, _nombres_conocidos, _info_personas
 
     with open(ruta_db, 'r', encoding='utf-8') as f:
