@@ -1,0 +1,26 @@
+# Dockerfile usando imagen con dependencias precompiladas
+FROM python:3.9
+
+# Instalar face_recognition usando paquetes precompilados
+RUN pip install --no-cache-dir \
+    face-recognition \
+    fastapi \
+    uvicorn \
+    requests \
+    python-multipart \
+    httpx
+
+# Establece el directorio de trabajo
+WORKDIR /app
+
+# Copiar el código
+COPY . .
+
+# Exponer puerto
+EXPOSE 8000
+
+# Variable de entorno
+ENV N8N_WEBHOOK_URL="https://n8n.supervis.ar/webhook-test/e641ceb9-838c-4df7-a3e0-c493ec6b69e8"
+
+# Comando
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

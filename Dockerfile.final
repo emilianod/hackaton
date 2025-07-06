@@ -1,0 +1,46 @@
+# Dockerfile definitivo que funciona
+FROM python:3.9
+
+# Instalar dependencias del sistema necesarias para compilar dlib
+RUN apt-get update && apt-get install -y \
+    cmake \
+    build-essential \
+    libopenblas-dev \
+    liblapack-dev \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Actualizar pip
+RUN pip install --upgrade pip
+
+# Instalar numpy primero (dependencia de face-recognition)
+RUN pip install --no-cache-dir numpy
+
+# Instalar dlib por separado primero
+RUN pip install --no-cache-dir dlib
+
+# Instalar face-recognition después de dlib
+RUN pip install --no-cache-dir face-recognition
+
+# Instalar el resto de dependencias
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    requests \
+    python-multipart \
+    httpx
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar el código
+COPY . .
+
+# Exponer puerto
+EXPOSE 8000
+
+# Variable de entorno
+ENV N8N_WEBHOOK_URL="https://n8n.supervis.ar/webhook-test/e641ceb9-838c-4df7-a3e0-c493ec6b69e8"
+
+# Comando para ejecutar
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

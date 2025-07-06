@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Persona - Reconocimiento Facial</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+            margin-bottom: 50px;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-label {
+            font-weight: bold;
+            color: #343a40;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+            width: 100%;
+            padding: 10px;
+            font-size: 1.1rem;
+            margin-top: 20px;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+        .alert {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Nueva Persona</h1>
+        <form id="registrationForm" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre Completo <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="nombre" name="nombre" required>
+            </div>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" id="peligroso" name="peligroso">
+                <label class="form-check-label" for="peligroso">¿Es una persona peligrosa?</label>
+            </div>
+            <div class="mb-3">
+                <label for="dni" class="form-label">DNI</label>
+                <input type="text" class="form-control" id="dni" name="dni">
+            </div>
+            <div class="mb-3">
+                <label for="domicilio" class="form-label">Domicilio</label>
+                <input type="text" class="form-control" id="domicilio" name="domicilio">
+            </div>
+            <div class="mb-3">
+                <label for="correo_electronico" class="form-label">Correo Electrónico</label>
+                <input type="email" class="form-control" id="correo_electronico" name="correo_electronico">
+            </div>
+            <div class="mb-3">
+                <label for="celular" class="form-label">Celular</label>
+                <input type="text" class="form-control" id="celular" name="celular" placeholder="+5491112345678">
+            </div>
+            <div class="mb-3">
+                <label for="a_notificar" class="form-label">Número de Celular a Notificar (si es reconocido)</label>
+                <input type="text" class="form-control" id="a_notificar" name="a_notificar" placeholder="+5491112345678">
+                <div class="form-text">Este número será usado para enviar notificaciones si la persona es reconocida.</div>
+            </div>
+            <div class="mb-3">
+                <label for="files" class="form-label">Imágenes de la Cara <span class="text-danger">*</span></label>
+                <input type="file" class="form-control" id="files" name="files" accept="image/jpeg, image/jpg" multiple required>
+                <div class="form-text">Sube una o más imágenes claras de la cara de la persona (solo .jpg o .jpeg).</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Registrar Persona</button>
+            <div id="responseMessage" class="alert mt-3 d-none" role="alert"></div>
+        </form>
+    </div>
+
+    <!-- Bootstrap JS y dependencias -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.7/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', async function(event) {
+            event.preventDefault(); // Prevenir el envío tradicional del formulario
+
+            const form = event.target;
+            const formData = new FormData();
+
+            // Recopilar campos de texto
+            formData.append('nombre', form.nombre.value);
+            formData.append('peligroso', form.peligroso.checked);
+            if (form.dni.value) formData.append('dni', form.dni.value);
+            if (form.domicilio.value) formData.append('domicilio', form.domicilio.value);
+            if (form.correo_electronico.value) formData.append('correo_electronico', form.correo_electronico.value);
+            if (form.celular.value) formData.append('celular', form.celular.value);
+            if (form.a_notificar.value) formData.append('a_notificar', form.a_notificar.value);
+
+            // Recopilar archivos de imagen
+            const files = form.files.files;
+            if (files.length === 0) {
+                displayMessage('Por favor, sube al menos una imagen.', 'danger');
+                return;
+            }
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            const responseMessage = document.getElementById('responseMessage');
+            responseMessage.classList.add('d-none'); // Ocultar mensajes anteriores
+
+            try {
+                const response = await fetch('/register_person/', {
+                    method: 'POST',
+                    body: formData // FormData se encarga de establecer el Content-Type correcto
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    displayMessage(result.message, 'success');
+                    form.reset(); // Limpiar el formulario
+                } else {
+                    displayMessage(result.detail || 'Error al registrar la persona.', 'danger');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                displayMessage('Error de conexión con el servidor.', 'danger');
+            }
+        });
+
+        function displayMessage(message, type) {
+            const responseMessage = document.getElementById('responseMessage');
+            responseMessage.textContent = message;
+            responseMessage.className = `alert mt-3 alert-${type}`;
+            responseMessage.classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>

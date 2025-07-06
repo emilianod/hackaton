@@ -1,0 +1,6 @@
+face-recognition
+fastapi
+uvicorn
+requests
+python-multipart
+httpx
