@@ -1,5 +1,5 @@
 # Dockerfile usando imagen que ya tiene dlib precompilado
-FROM ageitgey/face_recognition
+FROM face_recognition_custom
 
 # Instalar dependencias adicionales
 RUN pip install --no-cache-dir \
