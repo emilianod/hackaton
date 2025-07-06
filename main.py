@@ -29,18 +29,27 @@ info_personas = {}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info("Cargando base de datos de rostros conocidos...")
+    logging.info("Iniciando aplicación y preparando directorios...")
+    # Asegurarse de que el directorio de imágenes conocidas existe
     if not os.path.exists(RUTA_IMAGENES_CONOCIDAS):
         os.makedirs(RUTA_IMAGENES_CONOCIDAS)
         logging.warning(f"Directorio '{RUTA_IMAGENES_CONOCIDAS}' creado. Por favor, añade las imágenes de las personas conocidas.")
+    
+    # Asegurarse de que el directorio de la base de datos existe
+    db_dir = os.path.dirname(RUTA_DB)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+        logging.info(f"Directorio '{db_dir}' creado.")
+
+    logging.info("Cargando base de datos de rostros conocidos...")
     try:
         actualizar_base_de_datos_en_memoria()
         if not codificaciones_conocidas:
-            logging.warning("Advertencia: No se cargaron rostros conocidos. Asegúrese de que 'database.json' está configurado y las imágenes existen en 'known_faces'.")
+            logging.warning("Advertencia: No se cargaron rostros conocidos. La base de datos está vacía o las imágenes no han sido procesadas.")
         else:
             logging.info(f"Base de datos cargada con {len(nombres_conocidos)} rostros conocidos.")
     except Exception as e:
-        logging.error(f"Error al cargar la base de datos al inicio: {e}")
+        logging.error(f"Error crítico al cargar la base de datos al inicio: {e}")
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -53,6 +62,12 @@ def cargar_base_de_datos(ruta_db, ruta_imagenes):
     _nombres_conocidos = []
     _info_personas = {}
 
+    # Asegurarse de que el directorio de la base de datos existe
+    db_dir = os.path.dirname(ruta_db)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+        logging.info(f"Directorio '{db_dir}' creado.")
+
     if not os.path.exists(ruta_db):
         logging.warning(f"Advertencia: El archivo de base de datos '{ruta_db}' no existe. Creando uno vacío.")
         with open(ruta_db, 'w', encoding='utf-8') as f:
@@ -60,7 +75,11 @@ def cargar_base_de_datos(ruta_db, ruta_imagenes):
         return _codificaciones_conocidas, _nombres_conocidos, _info_personas
 
     with open(ruta_db, 'r', encoding='utf-8') as f:
-        db = json.load(f)
+        try:
+            db = json.load(f)
+        except json.JSONDecodeError:
+            logging.warning(f"Advertencia: El archivo de base de datos '{ruta_db}' está vacío o mal formado. Se tratará como una base de datos vacía.")
+            db = []
 
     for persona in db:
         # Incluir todos los campos relevantes en info_personas
@@ -245,12 +264,23 @@ async def register_person(
         raise HTTPException(status_code=400, detail="Debe subir al menos una imagen.")
 
     # Validar que el archivo de base de datos existe y cargarlo
+    db_dir = os.path.dirname(RUTA_DB)
+    if db_dir and not os.path.exists(db_dir):
+        os.makedirs(db_dir)
+        logging.info(f"Directorio '{db_dir}' creado.")
+
     if not os.path.exists(RUTA_DB):
         db = []
     else:
         try:
             with open(RUTA_DB, 'r', encoding='utf-8') as f:
-                db = json.load(f)
+                content = f.read()
+                if not content:
+                    db = []
+                else:
+                    db = json.loads(content)
+        except json.JSONDecodeError:
+            db = [] # Tratar archivo malformado como vacío
         except Exception as e:
             logging.error(f"Error al leer la base de datos: {e}")
             raise HTTPException(status_code=500, detail="Error al leer la base de datos.")
